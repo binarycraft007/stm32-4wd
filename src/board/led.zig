@@ -8,7 +8,7 @@ pub const Leds = enum {
     blue,
 };
 
-pub const Command = struct {
+pub const Command = packed struct {
     red: bool,
     green: bool,
     blue: bool,
