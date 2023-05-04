@@ -37,6 +37,7 @@ pub fn init() void {
     });
     // Disable all interrupts and clear pending bits
     micro.chip.peripherals.RCC.CIR.write_raw(0x009F0000);
+    micro.chip.peripherals.SCB.VTOR.write_raw(0x08000000 | 0x0);
 }
 
 pub fn main() !void {}

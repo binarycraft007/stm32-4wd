@@ -12,7 +12,7 @@ pub fn build(b: *std.build.Builder) !void {
             .path = "src/main.zig",
         },
         .backing = .{
-            .chip = stm32.chips.stm32f103x8,
+            .board = stm32.boards.stm32f103_4wd,
         },
         .optimize = optimize,
     });
@@ -22,6 +22,19 @@ pub fn build(b: *std.build.Builder) !void {
         .format = .bin,
         .basename = "hello.bin",
     });
-    const bin_install = b.addInstallBinFile(bin.getOutputSource(), bin.basename);
+    const bin_install = b.addInstallBinFile(
+        bin.getOutputSource(),
+        bin.basename,
+    );
     b.getInstallStep().dependOn(&bin_install.step);
+
+    const hex = exe.inner.addObjCopy(.{
+        .format = .hex,
+        .basename = "hello.hex",
+    });
+    const hex_install = b.addInstallBinFile(
+        hex.getOutputSource(),
+        hex.basename,
+    );
+    b.getInstallStep().dependOn(&hex_install.step);
 }

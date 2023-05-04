@@ -1,3 +1,0 @@
-[submodule "deps/stmicro-stm32"]
-	path = deps/stmicro-stm32
-	url = https://github.com/ZigEmbeddedGroup/stmicro-stm32
