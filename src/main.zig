@@ -1,5 +1,6 @@
 const std = @import("std");
 const micro = @import("microzig");
+const board = @import("board.zig");
 
 pub fn init() void {
     // Reset the RCC clock configuration to the default
@@ -40,4 +41,6 @@ pub fn init() void {
     micro.chip.peripherals.SCB.VTOR.write_raw(0x08000000 | 0x0);
 }
 
-pub fn main() !void {}
+pub fn main() void {
+    board.led.init();
+}

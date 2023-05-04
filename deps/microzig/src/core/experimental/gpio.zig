@@ -99,10 +99,10 @@ pub fn Gpio(comptime pin: type, comptime config: anytype) type {
         fn set_direction(dir: Direction, output_state: State) void {
             switch (dir) {
                 .output => {
-                    hal.gpio.setOutput(pin.source_pin);
+                    hal.gpio.set_output(pin.source_pin);
                     write(output_state);
                 },
-                .input => hal.gpio.setInput(pin.source_pin),
+                .input => hal.gpio.set_input(pin.source_pin),
             }
         }
         fn get_direction() Direction {

@@ -1,18 +1,33 @@
 const std = @import("std");
-const stm32 = @import("deps/stmicro-stm32/build.zig");
-
-// the hardware support package should have microzig as a dependency
-const microzig = @import("deps/stmicro-stm32/deps/microzig/build.zig");
+const microzig = @import("deps/microzig/build.zig");
 
 pub fn build(b: *std.build.Builder) !void {
     const optimize = b.standardOptimizeOption(.{});
-    var exe = microzig.addEmbeddedExecutable(b, .{
+    const exe = microzig.addEmbeddedExecutable(b, .{
         .name = "hello.elf",
         .source_file = .{
             .path = "src/main.zig",
         },
         .backing = .{
-            .board = stm32.boards.stm32f103_4wd,
+            .chip = microzig.Chip{
+                .name = "STM32F103",
+                .source = .{
+                    .path = "src/chips/STM32F103.zig",
+                },
+                .cpu = microzig.cpus.cortex_m3,
+                .memory_regions = &.{
+                    .{
+                        .offset = 0x08000000,
+                        .length = 64 * 1024,
+                        .kind = .flash,
+                    },
+                    .{
+                        .offset = 0x20000000,
+                        .length = 20 * 1024,
+                        .kind = .ram,
+                    },
+                },
+            },
         },
         .optimize = optimize,
     });
