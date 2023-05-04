@@ -47,60 +47,60 @@ pub fn main() void {
     board.led.init();
 
     while (true) {
-        board.led.control(.{ .red = true, .green = false, .blue = false });
+        board.led.control(.{ .red = 1, .green = 0, .blue = 0 });
         hal.delay.tick(.ms, 300);
-        board.led.control(.{ .red = false, .green = false, .blue = false });
+        board.led.control(.{ .red = 0, .green = 0, .blue = 0 });
         hal.delay.tick(.ms, 400);
-        board.led.control(.{ .red = true, .green = false, .blue = false });
+        board.led.control(.{ .red = 1, .green = 0, .blue = 0 });
         hal.delay.tick(.ms, 300);
 
-        board.led.control(.{ .red = false, .green = false, .blue = true });
+        board.led.control(.{ .red = 0, .green = 0, .blue = 1 });
         hal.delay.tick(.ms, 300);
-        board.led.control(.{ .red = false, .green = false, .blue = false });
+        board.led.control(.{ .red = 0, .green = 0, .blue = 0 });
         hal.delay.tick(.ms, 400);
-        board.led.control(.{ .red = false, .green = false, .blue = true });
+        board.led.control(.{ .red = 0, .green = 0, .blue = 1 });
         hal.delay.tick(.ms, 300);
 
-        board.led.control(.{ .red = true, .green = false, .blue = false });
+        board.led.control(.{ .red = 1, .green = 0, .blue = 0 });
         hal.delay.tick(.ms, 100);
-        board.led.control(.{ .red = false, .green = false, .blue = false });
+        board.led.control(.{ .red = 0, .green = 0, .blue = 0 });
         hal.delay.tick(.ms, 50);
-        board.led.control(.{ .red = false, .green = false, .blue = true });
+        board.led.control(.{ .red = 0, .green = 0, .blue = 1 });
         hal.delay.tick(.ms, 100);
-        board.led.control(.{ .red = true, .green = false, .blue = false });
+        board.led.control(.{ .red = 1, .green = 0, .blue = 0 });
         hal.delay.tick(.ms, 100);
-        board.led.control(.{ .red = false, .green = false, .blue = false });
+        board.led.control(.{ .red = 0, .green = 0, .blue = 0 });
         hal.delay.tick(.ms, 50);
-        board.led.control(.{ .red = false, .green = false, .blue = true });
+        board.led.control(.{ .red = 0, .green = 0, .blue = 1 });
         hal.delay.tick(.ms, 100);
-        board.led.control(.{ .red = true, .green = false, .blue = false });
+        board.led.control(.{ .red = 1, .green = 0, .blue = 0 });
         hal.delay.tick(.ms, 100);
-        board.led.control(.{ .red = false, .green = false, .blue = false });
+        board.led.control(.{ .red = 0, .green = 0, .blue = 0 });
         hal.delay.tick(.ms, 50);
-        board.led.control(.{ .red = false, .green = false, .blue = true });
+        board.led.control(.{ .red = 0, .green = 0, .blue = 1 });
         hal.delay.tick(.ms, 100);
-        board.led.control(.{ .red = true, .green = false, .blue = false });
+        board.led.control(.{ .red = 1, .green = 0, .blue = 0 });
         hal.delay.tick(.ms, 100);
-        board.led.control(.{ .red = false, .green = false, .blue = false });
+        board.led.control(.{ .red = 0, .green = 0, .blue = 0 });
         hal.delay.tick(.ms, 50);
-        board.led.control(.{ .red = false, .green = false, .blue = true });
+        board.led.control(.{ .red = 0, .green = 0, .blue = 1 });
         hal.delay.tick(.ms, 100);
 
-        board.led.control(.{ .red = true, .green = false, .blue = false });
+        board.led.control(.{ .red = 1, .green = 0, .blue = 0 });
         hal.delay.tick(.ms, 500);
-        board.led.control(.{ .red = false, .green = true, .blue = false });
+        board.led.control(.{ .red = 0, .green = 1, .blue = 0 });
         hal.delay.tick(.ms, 500);
-        board.led.control(.{ .red = false, .green = false, .blue = true });
+        board.led.control(.{ .red = 0, .green = 0, .blue = 1 });
         hal.delay.tick(.ms, 500);
-        board.led.control(.{ .red = true, .green = true, .blue = false });
+        board.led.control(.{ .red = 1, .green = 1, .blue = 0 });
         hal.delay.tick(.ms, 500);
-        board.led.control(.{ .red = true, .green = false, .blue = true });
+        board.led.control(.{ .red = 1, .green = 0, .blue = 1 });
         hal.delay.tick(.ms, 500);
-        board.led.control(.{ .red = false, .green = true, .blue = true });
+        board.led.control(.{ .red = 0, .green = 1, .blue = 1 });
         hal.delay.tick(.ms, 500);
-        board.led.control(.{ .red = true, .green = true, .blue = true });
+        board.led.control(.{ .red = 1, .green = 1, .blue = 1 });
         hal.delay.tick(.ms, 500);
-        board.led.control(.{ .red = false, .green = false, .blue = false });
+        board.led.control(.{ .red = 0, .green = 0, .blue = 0 });
         hal.delay.tick(.ms, 500);
     }
 }

@@ -9,9 +9,9 @@ pub const Leds = enum {
 };
 
 pub const Command = packed struct {
-    red: bool,
-    green: bool,
-    blue: bool,
+    red: u1,
+    green: u1,
+    blue: u1,
 };
 
 var gpio_red: hal.GPIO = undefined;
@@ -64,9 +64,18 @@ pub fn set_off(led: Leds) void {
 }
 
 pub fn control(cmd: Command) void {
-    if (cmd.red) set_on(.red) else set_off(.red);
+    switch (cmd.red) {
+        1 => set_on(.red),
+        0 => set_off(.red),
+    }
 
-    if (cmd.green) set_on(.green) else set_off(.green);
+    switch (cmd.green) {
+        1 => set_on(.green),
+        0 => set_off(.green),
+    }
 
-    if (cmd.blue) set_on(.blue) else set_off(.blue);
+    switch (cmd.blue) {
+        1 => set_on(.blue),
+        0 => set_off(.blue),
+    }
 }
