@@ -37,33 +37,73 @@ pub const Mode = enum(u32) {
     af_pp = 0x18,
 };
 
-pub const Config = struct {
-    pin: Pin,
-    speed: Speed,
-    mode: Mode,
-};
-
+pin: Pin,
+speed: Speed,
+mode: Mode,
 inner: *volatile micro.chip.types.GPIOA,
 
 const GPIO = @This();
 
-pub fn init(gpio: *GPIO, config: Config) void {
-    var cur_mode = @enumToInt(config.mode) & @as(u32, 0x0F);
-    if ((@enumToInt(config.mode) & @as(u32, 0x10)) != 0x00) {
-        cur_mode |= @enumToInt(config.speed);
+pub fn init(gpio: *GPIO) void {
+    // GPIO Mode Configuration
+    var cur_mode = @enumToInt(gpio.mode) & @as(u32, 0x0F);
+    if ((@enumToInt(gpio.mode) & @as(u32, 0x10)) != 0x00) {
+        cur_mode |= @enumToInt(gpio.speed);
     }
 
-    if ((@enumToInt(config.pin) & @as(u32, 0xFF)) != 0x00) {
-        var tmp_reg = @bitCast(u32, gpio.inner.CRL);
-        for (0x00..0x08) |pinpos| {
+    // GPIO CRL Configuration
+    if ((@enumToInt(gpio.pin) & @as(u32, 0xFF)) != 0x00) {
+        var tmp_reg = @bitCast(u32, gpio.inner.CRL.read());
+        inline for (0x00..0x08) |pinpos| {
             var pos = @as(u32, 0x01) << @intCast(u5, pinpos);
-            var cur_pin = @enumToInt(config.pin) & pos;
+            var cur_pin = @enumToInt(gpio.pin) & pos;
 
             if (cur_pin == pos) {
                 pos = pinpos << 2;
                 var pin_mask = @as(u32, 0x0F) << @intCast(u5, pos);
                 tmp_reg &= ~pin_mask;
+                tmp_reg |= (cur_mode << @intCast(u5, pos));
+                if (gpio.mode == .ipd) {
+                    gpio.inner.BRR.write_raw(@as(u32, 0x01) << @intCast(u5, pinpos));
+                } else {
+                    if (gpio.mode == .ipu) {
+                        gpio.inner.BSRR.write_raw(@as(u32, 0x01) << @intCast(u5, pinpos));
+                    }
+                }
             }
         }
+        gpio.inner.CRL.write_raw(tmp_reg);
     }
+
+    // GPIO CRH Configuration
+    if (@enumToInt(gpio.pin) > 0x00FF) {
+        var tmp_reg = @bitCast(u32, gpio.inner.CRH.read());
+        inline for (0x00..0x08) |pinpos| {
+            var pos = @as(u32, 0x01) << @intCast(u5, pinpos + 0x08);
+            var cur_pin = @enumToInt(gpio.pin) & pos;
+
+            if (cur_pin == pos) {
+                pos = pinpos << 2;
+                var pin_mask = @as(u32, 0x0F) << @intCast(u5, pos);
+                tmp_reg &= ~pin_mask;
+                tmp_reg |= (cur_mode << @intCast(u5, pos));
+                if (gpio.mode == .ipd) {
+                    gpio.inner.BRR.write_raw(@as(u32, 0x01) << @intCast(u5, pinpos + 0x08));
+                } else {
+                    if (gpio.mode == .ipu) {
+                        gpio.inner.BSRR.write_raw(@as(u32, 0x01) << @intCast(u5, pinpos + 0x08));
+                    }
+                }
+            }
+        }
+        gpio.inner.CRH.write_raw(tmp_reg);
+    }
+}
+
+pub fn set_bits(gpio: *GPIO) void {
+    gpio.inner.BSRR.write_raw(@enumToInt(gpio.pin));
+}
+
+pub fn reset_bits(gpio: *GPIO) void {
+    gpio.inner.BRR.write_raw(@enumToInt(gpio.pin));
 }

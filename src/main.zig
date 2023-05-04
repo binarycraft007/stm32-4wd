@@ -1,4 +1,5 @@
 const std = @import("std");
+const hal = @import("hal.zig");
 const micro = @import("microzig");
 const board = @import("board.zig");
 
@@ -42,5 +43,22 @@ pub fn init() void {
 }
 
 pub fn main() void {
+    hal.delay.init();
     board.led.init();
+
+    while (true) {
+        board.led.control(.{ .red = true, .green = false, .blue = false });
+        hal.delay.tick(.ms, 300);
+        board.led.control(.{ .red = false, .green = false, .blue = false });
+        hal.delay.tick(.ms, 400);
+        board.led.control(.{ .red = true, .green = false, .blue = false });
+        hal.delay.tick(.ms, 300);
+
+        board.led.control(.{ .red = false, .green = false, .blue = true });
+        hal.delay.tick(.ms, 300);
+        board.led.control(.{ .red = false, .green = false, .blue = false });
+        hal.delay.tick(.ms, 400);
+        board.led.control(.{ .red = false, .green = false, .blue = true });
+        hal.delay.tick(.ms, 300);
+    }
 }
