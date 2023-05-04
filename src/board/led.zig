@@ -64,21 +64,9 @@ pub fn set_off(led: Leds) void {
 }
 
 pub fn control(cmd: Command) void {
-    if (cmd.red) {
-        set_on(.red);
-    } else {
-        set_off(.red);
-    }
+    if (cmd.red) set_on(.red) else set_off(.red);
 
-    if (cmd.green) {
-        set_on(.green);
-    } else {
-        set_off(.green);
-    }
+    if (cmd.green) set_on(.green) else set_off(.green);
 
-    if (cmd.blue) {
-        set_on(.blue);
-    } else {
-        set_off(.blue);
-    }
+    if (cmd.blue) set_on(.blue) else set_off(.blue);
 }
