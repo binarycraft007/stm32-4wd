@@ -15,6 +15,7 @@ pub fn build(b: *std.build.Builder) !void {
                     .path = "src/chips/STM32F103.zig",
                 },
                 .cpu = microzig.cpus.cortex_m3,
+                .hal = .{ .path = "src/hal.zig" },
                 .memory_regions = &.{
                     .{
                         .offset = 0x08000000,
