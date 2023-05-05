@@ -23,27 +23,30 @@ var leds: Leds = .{
 pub fn init() void {
     RCC.APB2ENR.modify(.{ .IOPBEN = 1 });
     leds.red = .{
+        .pin = .pin_1,
         .mode = .out_push_pull,
         .speed = .@"50_mhz",
         .inner = micro.chip.peripherals.GPIOB,
     };
-    leds.red.init(.pin_1);
+    leds.red.init();
 
     RCC.APB2ENR.modify(.{ .IOPBEN = 1 });
     leds.green = .{
+        .pin = .pin_0,
         .mode = .out_push_pull,
         .speed = .@"50_mhz",
         .inner = micro.chip.peripherals.GPIOB,
     };
-    leds.green.init(.pin_0);
+    leds.green.init();
 
     RCC.APB2ENR.modify(.{ .IOPAEN = 1 });
     leds.blue = .{
+        .pin = .pin_7,
         .mode = .out_push_pull,
         .speed = .@"50_mhz",
         .inner = micro.chip.peripherals.GPIOA,
     };
-    leds.blue.init(.pin_7);
+    leds.blue.init();
 }
 
 pub fn control(cmd: Command) void {
