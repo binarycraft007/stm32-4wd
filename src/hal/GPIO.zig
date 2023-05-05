@@ -38,6 +38,15 @@ pub const Mode = enum {
     alter_open_drain,
 };
 
+pub const State = enum(u1) {
+    low = 0,
+    high = 1,
+
+    pub fn value(self: State) u1 {
+        return @enumToInt(self);
+    }
+};
+
 pin: Pin = undefined,
 speed: Speed,
 mode: Mode,
@@ -87,12 +96,17 @@ pub fn init(gpio: *GPIO, comptime pin: Pin) void {
     set_reg_field(reg, "MODE" ++ index, mode);
 }
 
-pub fn set_pin(gpio: *GPIO) void {
-    gpio.inner.BSRR.write_raw(@enumToInt(gpio.pin));
-}
-
-pub fn reset_pin(gpio: *GPIO) void {
-    gpio.inner.BRR.write_raw(@enumToInt(gpio.pin));
+pub fn put(gpio: *GPIO, state: State) void {
+    inline for (0..16) |i| {
+        if (@enumToInt(gpio.pin) == i) {
+            const index = std.fmt.comptimePrint("{d}", .{i});
+            switch (state) {
+                .high => set_reg_field(gpio.inner.BSRR, "BS" ++ index, 0x1),
+                .low => set_reg_field(gpio.inner.BRR, "BR" ++ index, 0x1),
+            }
+            break;
+        }
+    }
 }
 
 fn set_reg_field(reg: anytype, comptime field_name: anytype, value: anytype) void {

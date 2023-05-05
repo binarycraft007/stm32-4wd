@@ -47,18 +47,7 @@ pub fn init() void {
 }
 
 pub fn control(cmd: Command) void {
-    switch (cmd.red) {
-        1 => leds.red.set_pin(),
-        0 => leds.red.reset_pin(),
-    }
-
-    switch (cmd.green) {
-        1 => leds.green.set_pin(),
-        0 => leds.green.reset_pin(),
-    }
-
-    switch (cmd.blue) {
-        1 => leds.blue.set_pin(),
-        0 => leds.blue.reset_pin(),
-    }
+    leds.red.put(@intToEnum(GPIO.State, cmd.red));
+    leds.green.put(@intToEnum(GPIO.State, cmd.green));
+    leds.blue.put(@intToEnum(GPIO.State, cmd.blue));
 }
