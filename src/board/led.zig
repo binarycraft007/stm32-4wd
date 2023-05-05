@@ -20,7 +20,7 @@ var gpio_blue: hal.GPIO = undefined;
 
 pub fn init() void {
     RCC.APB2ENR.modify(.{ .IOPBEN = 1 });
-    gpio_red = hal.GPIO{
+    gpio_red = .{
         .mode = .out_pp,
         .pin = .pin_1,
         .speed = .@"50_mhz",
@@ -29,7 +29,7 @@ pub fn init() void {
     gpio_red.init();
 
     RCC.APB2ENR.modify(.{ .IOPBEN = 1 });
-    gpio_green = hal.GPIO{
+    gpio_green = .{
         .mode = .out_pp,
         .pin = .pin_0,
         .speed = .@"50_mhz",
@@ -38,7 +38,7 @@ pub fn init() void {
     gpio_green.init();
 
     RCC.APB2ENR.modify(.{ .IOPAEN = 1 });
-    gpio_blue = hal.GPIO{
+    gpio_blue = .{
         .mode = .out_pp,
         .pin = .pin_7,
         .speed = .@"50_mhz",
