@@ -1,109 +1,103 @@
-pub const micro = @import("microzig");
+const std = @import("std");
+const micro = @import("microzig");
 
-pub const Pin = enum(u16) {
-    pin_0 = 0x0001,
-    pin_1 = 0x0002,
-    pin_2 = 0x0004,
-    pin_3 = 0x0008,
-    pin_4 = 0x0010,
-    pin_5 = 0x0020,
-    pin_6 = 0x0040,
-    pin_7 = 0x0080,
-    pin_8 = 0x0100,
-    pin_9 = 0x0200,
-    pin_10 = 0x0400,
-    pin_11 = 0x0800,
-    pin_12 = 0x1000,
-    pin_13 = 0x2000,
-    pin_14 = 0x4000,
-    pin_15 = 0x8000,
-    pin_all = 0xFFFF,
+pub const Pin = enum {
+    pin_0,
+    pin_1,
+    pin_2,
+    pin_3,
+    pin_4,
+    pin_5,
+    pin_6,
+    pin_7,
+    pin_8,
+    pin_9,
+    pin_10,
+    pin_11,
+    pin_12,
+    pin_13,
+    pin_14,
+    pin_15,
 };
 
-pub const Speed = enum(u3) {
-    @"10_mhz" = 1,
+pub const Speed = enum {
+    @"10_mhz",
     @"2_mhz",
     @"50_mhz",
 };
 
-pub const Mode = enum(u32) {
-    ain = 0x00,
-    in_floating = 0x04,
-    ipd = 0x28,
-    ipu = 0x48,
-    out_od = 0x14,
-    out_pp = 0x10,
-    af_od = 0x1c,
-    af_pp = 0x18,
+pub const Mode = enum {
+    in_analog,
+    in_floating,
+    in_pull_down,
+    in_pull_up,
+
+    out_push_pull,
+    out_open_drain,
+    alter_push_pull,
+    alter_open_drain,
 };
 
-pin: Pin,
+pin: Pin = undefined,
 speed: Speed,
 mode: Mode,
 inner: *volatile micro.chip.types.GPIOA,
 
 const GPIO = @This();
 
-pub fn init(gpio: *GPIO) void {
-    // GPIO Mode Configuration
-    var cur_mode = @enumToInt(gpio.mode) & @as(u32, 0x0F);
-    if ((@enumToInt(gpio.mode) & @as(u32, 0x10)) != 0x00) {
-        cur_mode |= @enumToInt(gpio.speed);
-    }
+pub fn init(gpio: *GPIO, comptime pin: Pin) void {
+    gpio.pin = pin;
 
-    // GPIO CRL Configuration
-    if ((@enumToInt(gpio.pin) & @as(u32, 0xFF)) != 0x00) {
-        var tmp_reg = @bitCast(u32, gpio.inner.CRL.read());
-        inline for (0x00..0x08) |pinpos| {
-            var pos = @as(u32, 0x01) << @intCast(u5, pinpos);
-            var cur_pin = @enumToInt(gpio.pin) & pos;
-
-            if (cur_pin == pos) {
-                pos = pinpos << 2;
-                var pin_mask = @as(u32, 0x0F) << @intCast(u5, pos);
-                tmp_reg &= ~pin_mask;
-                tmp_reg |= (cur_mode << @intCast(u5, pos));
-                if (gpio.mode == .ipd) {
-                    gpio.inner.BRR.write_raw(@as(u32, 0x01) << @intCast(u5, pinpos));
-                } else {
-                    if (gpio.mode == .ipu) {
-                        gpio.inner.BSRR.write_raw(@as(u32, 0x01) << @intCast(u5, pinpos));
-                    }
-                }
-            }
+    var reg = blk: {
+        switch (@enumToInt(pin)) {
+            0...7 => break :blk gpio.inner.CRL,
+            8...15 => break :blk gpio.inner.CRH,
         }
-        gpio.inner.CRL.write_raw(tmp_reg);
-    }
+    };
 
-    // GPIO CRH Configuration
-    if (@enumToInt(gpio.pin) > 0x00FF) {
-        var tmp_reg = @bitCast(u32, gpio.inner.CRH.read());
-        inline for (0x00..0x08) |pinpos| {
-            var pos = @as(u32, 0x01) << @intCast(u5, pinpos + 0x08);
-            var cur_pin = @enumToInt(gpio.pin) & pos;
-
-            if (cur_pin == pos) {
-                pos = pinpos << 2;
-                var pin_mask = @as(u32, 0x0F) << @intCast(u5, pos);
-                tmp_reg &= ~pin_mask;
-                tmp_reg |= (cur_mode << @intCast(u5, pos));
-                if (gpio.mode == .ipd) {
-                    gpio.inner.BRR.write_raw(@as(u32, 0x01) << @intCast(u5, pinpos + 0x08));
-                } else {
-                    if (gpio.mode == .ipu) {
-                        gpio.inner.BSRR.write_raw(@as(u32, 0x01) << @intCast(u5, pinpos + 0x08));
-                    }
-                }
-            }
+    var config: u2 = blk: {
+        switch (gpio.mode) {
+            .in_analog, .out_push_pull => break :blk 0x0,
+            .in_floating, .out_open_drain => break :blk 0x1,
+            .in_pull_down, .in_pull_up, .alter_push_pull => break :blk 0x2,
+            .alter_open_drain => break :blk 0x3,
         }
-        gpio.inner.CRH.write_raw(tmp_reg);
+    };
+
+    var mode: u2 = blk: {
+        switch (gpio.mode) {
+            .in_analog, .in_floating, .in_pull_down, .in_pull_up => break :blk 0x0,
+            else => {
+                switch (gpio.speed) {
+                    .@"10_mhz" => break :blk 0x1,
+                    .@"2_mhz" => break :blk 0x2,
+                    .@"50_mhz" => break :blk 0x3,
+                }
+            },
+        }
+    };
+
+    const index = std.fmt.comptimePrint("{d}", .{@enumToInt(pin)});
+    switch (gpio.mode) {
+        .in_pull_up => set_reg_field(gpio.inner.BSRR, "BS" ++ index, 0x1),
+        .in_pull_down => set_reg_field(gpio.inner.BRR, "BR" ++ index, 0x1),
+        else => {},
     }
+    set_reg_field(reg, "CNF" ++ index, config);
+    set_reg_field(reg, "MODE" ++ index, mode);
 }
 
-pub fn set_bits(gpio: *GPIO) void {
+pub fn set_pin(gpio: *GPIO) void {
     gpio.inner.BSRR.write_raw(@enumToInt(gpio.pin));
 }
 
-pub fn reset_bits(gpio: *GPIO) void {
+pub fn reset_pin(gpio: *GPIO) void {
     gpio.inner.BRR.write_raw(@enumToInt(gpio.pin));
+}
+
+fn set_reg_field(reg: anytype, comptime field_name: anytype, value: anytype) void {
+    var reg_var = reg;
+    var temp = reg_var.read();
+    @field(temp, field_name) = value;
+    reg_var.write(temp);
 }
