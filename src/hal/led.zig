@@ -1,17 +1,11 @@
 const micro = @import("microzig");
 const RCC = micro.chip.peripherals.RCC;
-const GPIO = micro.hal.GPIO;
-
-pub const Command = packed struct {
-    red: u1,
-    green: u1,
-    blue: u1,
-};
+const Gpio = micro.hal.Gpio;
 
 const Leds = struct {
-    red: GPIO,
-    green: GPIO,
-    blue: GPIO,
+    red: Gpio,
+    green: Gpio,
+    blue: Gpio,
 };
 
 var leds: Leds = .{
@@ -22,35 +16,32 @@ var leds: Leds = .{
 
 pub fn init() void {
     RCC.APB2ENR.modify(.{ .IOPBEN = 1 });
-    leds.red = .{
-        .pin = .pin_1,
+    leds.red = Gpio.init(.{
+        .pin = .{ .pin_01 = 1 },
         .mode = .out_push_pull,
         .speed = .@"50_mhz",
         .inner = micro.chip.peripherals.GPIOB,
-    };
-    leds.red.init();
+    });
 
     RCC.APB2ENR.modify(.{ .IOPBEN = 1 });
-    leds.green = .{
-        .pin = .pin_0,
+    leds.green = Gpio.init(.{
+        .pin = .{ .pin_00 = 1 },
         .mode = .out_push_pull,
         .speed = .@"50_mhz",
         .inner = micro.chip.peripherals.GPIOB,
-    };
-    leds.green.init();
+    });
 
     RCC.APB2ENR.modify(.{ .IOPAEN = 1 });
-    leds.blue = .{
-        .pin = .pin_7,
+    leds.blue = Gpio.init(.{
+        .pin = .{ .pin_07 = 1 },
         .mode = .out_push_pull,
         .speed = .@"50_mhz",
         .inner = micro.chip.peripherals.GPIOA,
-    };
-    leds.blue.init();
+    });
 }
 
-pub fn control(cmd: Command) void {
-    leds.red.put(@intToEnum(GPIO.State, cmd.red));
-    leds.green.put(@intToEnum(GPIO.State, cmd.green));
-    leds.blue.put(@intToEnum(GPIO.State, cmd.blue));
+pub fn control(fields: anytype) void {
+    inline for (@typeInfo(@TypeOf(fields)).Struct.fields) |field| {
+        @field(leds, field.name).put(@field(fields, field.name));
+    }
 }

@@ -1,5 +1,5 @@
 pub const micro = @import("microzig");
-pub const GPIO = @import("hal/GPIO.zig");
+pub const Gpio = @import("hal/Gpio.zig");
 pub const time = @import("hal/time.zig");
 pub const led = @import("hal/led.zig");
 
