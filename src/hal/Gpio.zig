@@ -62,6 +62,17 @@ pub const State = enum(u1) {
     low = 0,
 };
 
+pub const PortConfigs = packed struct(u32) {
+    port0: u4,
+    port1: u4,
+    port2: u4,
+    port3: u4,
+    port4: u4,
+    port5: u4,
+    port6: u4,
+    port7: u4,
+};
+
 pub const PortConfig = packed struct(u4) {
     mode: u2,
     config: u2,
@@ -142,27 +153,34 @@ pub fn init(options: InitOptions) Gpio {
         else => {},
     }
 
-    var config_raw = @intCast(u32, @bitCast(u4, PortConfig{
+    var port_config = @bitCast(u4, PortConfig{
         .mode = mode,
         .config = config,
-    }));
+    });
 
+    const fields = @typeInfo(PortConfigs).Struct.fields;
     switch (std.math.log2(@bitCast(u16, gpio.pins))) {
         0...7 => |index| {
             var tmp_reg = gpio.inner.CRL.raw;
-            var pos = index << 2;
-            var pin_mask = @as(u32, 0x0F) << @intCast(u5, pos);
-            tmp_reg &= ~pin_mask;
-            tmp_reg |= config_raw << @intCast(u5, pos);
-            gpio.inner.CRL.write_raw(tmp_reg);
+            var configs = @bitCast(PortConfigs, tmp_reg);
+            inline for (fields, 0..8) |field, i| {
+                if (i == index) {
+                    @field(configs, field.name) = port_config;
+                    break;
+                }
+            }
+            gpio.inner.CRL.write_raw(@bitCast(u32, configs));
         },
         8...15 => |index| {
             var tmp_reg = gpio.inner.CRH.raw;
-            var pos = (index - 8) << 2;
-            var pin_mask = @as(u32, 0x0F) << @intCast(u5, pos);
-            tmp_reg &= ~pin_mask;
-            tmp_reg |= config_raw << @intCast(u5, pos);
-            gpio.inner.CRH.write_raw(tmp_reg);
+            var configs = @bitCast(PortConfigs, tmp_reg);
+            inline for (fields, 0..8) |field, i| {
+                if (i == (index - 8)) {
+                    @field(configs, field.name) = port_config;
+                    break;
+                }
+            }
+            gpio.inner.CRH.write_raw(@bitCast(u32, configs));
         },
         else => unreachable,
     }
