@@ -2,6 +2,7 @@ pub const micro = @import("microzig");
 pub const Gpio = @import("hal/Gpio.zig");
 pub const time = @import("hal/time.zig");
 pub const led = @import("hal/led.zig");
+pub const motor = @import("hal/motor.zig");
 
 pub fn init() void {
     // Reset the RCC clock configuration to the default
@@ -43,4 +44,5 @@ pub fn init() void {
 
     time.init();
     led.init();
+    motor.init();
 }
