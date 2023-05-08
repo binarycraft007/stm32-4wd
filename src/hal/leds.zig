@@ -20,7 +20,7 @@ pub fn init() void {
         .pin = .{ .pin_01 = 1 },
         .mode = .out_push_pull,
         .speed = .@"50_mhz",
-        .inner = micro.chip.peripherals.GPIOB,
+        .handle = .GPIOB,
     });
 
     RCC.APB2ENR.modify(.{ .IOPBEN = 1 });
@@ -28,7 +28,7 @@ pub fn init() void {
         .pin = .{ .pin_00 = 1 },
         .mode = .out_push_pull,
         .speed = .@"50_mhz",
-        .inner = micro.chip.peripherals.GPIOB,
+        .handle = .GPIOB,
     });
 
     RCC.APB2ENR.modify(.{ .IOPAEN = 1 });
@@ -36,7 +36,7 @@ pub fn init() void {
         .pin = .{ .pin_07 = 1 },
         .mode = .out_push_pull,
         .speed = .@"50_mhz",
-        .inner = micro.chip.peripherals.GPIOA,
+        .handle = .GPIOA,
     });
 }
 

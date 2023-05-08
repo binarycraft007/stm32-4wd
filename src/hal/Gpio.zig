@@ -78,17 +78,27 @@ pub const PortConfig = packed struct(u4) {
     config: u2,
 };
 
+pub const GpioHandles = enum {
+    GPIOA,
+    GPIOB,
+    GPIOC,
+    GPIOD,
+    GPIOE,
+    GPIOF,
+    GPIOG,
+};
+
 pub const InitOptions = struct {
     pin: Pin,
     speed: Speed,
     mode: Mode,
-    inner: *volatile micro.chip.types.GPIOA,
+    handle: GpioHandles,
 };
 
 pins: Pins = .{},
 speed: Speed,
 mode: Mode,
-inner: *volatile micro.chip.types.GPIOA,
+inner: *volatile micro.chip.types.GPIOA = undefined,
 
 const Gpio = @This();
 
@@ -96,13 +106,20 @@ pub fn init(options: InitOptions) Gpio {
     var gpio = Gpio{
         .speed = options.speed,
         .mode = options.mode,
-        .inner = options.inner,
     };
 
     switch (options.pin) {
-        inline else => |_, tag| {
-            @field(gpio.pins, @tagName(tag)) = 1;
-        },
+        inline else => |_, tag| @field(
+            gpio.pins,
+            @tagName(tag),
+        ) = 1,
+    }
+
+    switch (options.handle) {
+        inline else => |tag| gpio.inner = @field(
+            micro.chip.peripherals,
+            @tagName(tag),
+        ),
     }
 
     // In input mode (MODE[1:0] = 00):

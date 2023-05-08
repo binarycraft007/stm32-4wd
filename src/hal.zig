@@ -1,8 +1,9 @@
 pub const micro = @import("microzig");
 pub const Gpio = @import("hal/Gpio.zig");
+pub const Tim = @import("hal/Tim.zig");
 pub const time = @import("hal/time.zig");
-pub const led = @import("hal/led.zig");
-pub const motor = @import("hal/motor.zig");
+pub const leds = @import("hal/leds.zig");
+pub const motors = @import("hal/motors.zig");
 
 pub fn init() void {
     // Reset the RCC clock configuration to the default
@@ -43,6 +44,6 @@ pub fn init() void {
     micro.chip.peripherals.SCB.VTOR.write_raw(0x08000000 | 0x0);
 
     time.init();
-    led.init();
-    motor.init();
+    leds.init();
+    motors.init();
 }
