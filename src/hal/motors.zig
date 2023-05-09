@@ -19,63 +19,93 @@ var motors: Motors = .{
     .right = undefined,
 };
 
-const Pwms = struct { pwma: struct {
-    gpio: Gpio,
-    tim: Tim,
-}, pwmb: struct {
-    gpio: Gpio,
-    tim: Tim,
-} };
+const Pwms = struct {
+    left: struct {
+        gpio: Gpio,
+        tim: Tim,
+    },
+    right: struct {
+        gpio: Gpio,
+        tim: Tim,
+    },
+};
+
+const PwmInitOptions = struct {
+    left: struct {
+        reload_period: u16,
+        prescaler: u16,
+    },
+    right: struct {
+        reload_period: u16,
+        prescaler: u16,
+    },
+};
 
 var pwms: Pwms = .{
-    .pwma = undefined,
-    .pwmb = undefined,
+    .left = undefined,
+    .right = undefined,
 };
 
 pub fn init() void {
     init_gpios();
-    init_pwm();
+    init_pwms(.{
+        .left = .{
+            .reload_period = 7200,
+            .prescaler = 0,
+        },
+        .right = .{
+            .reload_period = 7200,
+            .prescaler = 0,
+        },
+    });
 }
 
-fn init_gpios() void {
-    RCC.APB2ENR.modify(.{ .IOPBEN = 1 });
+inline fn init_gpios() void {
+    RCC.APB2ENR.modify(.{ .IOPBEN = 1, .AFIOEN = 1 });
+    // Release PB4 as GPIO instead of debug
+    micro.chip.peripherals.AFIO.MAPR.modify(.{
+        .SWJ_CFG = 0b010, // JTAG Disabled, SW Enabled
+    });
+
     motors.left.front = Gpio.init(.{
         .pin = .{ .pin_09 = 1 },
         .mode = .out_push_pull,
         .speed = .@"50_mhz",
         .handle = .GPIOB,
     });
+
     motors.left.rear = Gpio.init(.{
         .pin = .{ .pin_08 = 1 },
         .mode = .out_push_pull,
         .speed = .@"50_mhz",
         .handle = .GPIOB,
     });
+
     motors.right.front = Gpio.init(.{
         .pin = .{ .pin_04 = 1 },
         .mode = .out_push_pull,
         .speed = .@"50_mhz",
         .handle = .GPIOB,
     });
+
     motors.right.rear = Gpio.init(.{
         .pin = .{ .pin_05 = 1 },
         .mode = .out_push_pull,
         .speed = .@"50_mhz",
         .handle = .GPIOB,
     });
-    control_left(.{ .front = .high, .rear = .high });
-    control_right(.{ .front = .high, .rear = .high });
+    control_left(.{ .front = .low, .rear = .low });
+    control_right(.{ .front = .low, .rear = .low });
 }
 
-fn init_pwm() void {
-    micro.chip.peripherals.AFIO.MAPR.modify(.{ .SWJ_CFG = 0b010 });
-
+inline fn init_pwms(options: PwmInitOptions) void {
     RCC.APB2ENR.modify(.{ .IOPBEN = 1, .AFIOEN = 1 });
     RCC.APB1ENR.modify(.{ .TIM4EN = 1 });
-    pwms.pwma = .{
+
+    pwms.left = .{
         .gpio = Gpio.init(.{
             .pin = .{ .pin_07 = 1 },
-            .mode = .alter_push_pull,
+            .mode = .alt_push_pull,
             .speed = .@"50_mhz",
             .handle = .GPIOB,
         }),
@@ -83,28 +113,31 @@ fn init_pwm() void {
             .handle = .TIM4,
             .direction = .up,
             .clock_division = .clock_division1,
-            .reload_period = 7200,
-            .prescaler = 0,
+            .reload_period = options.left.reload_period,
+            .prescaler = options.left.prescaler,
         }),
     };
-    pwms.pwma.tim.init_output_compare(.{ .mode = .{ .OC2M = .pwm1 } });
-    switch (pwms.pwma.tim.handle) {
-        inline else => |handle| {
-            if (@hasDecl(@TypeOf(handle.*), "CCMR1_Output")) {
-                handle.CCMR1_Output.modify(.{ .OC2PE = 1 });
-            }
-            if (@hasDecl(@TypeOf(handle.*), "CR1")) {
-                handle.CR1.modify(.{ .CEN = 1 });
-            }
+    pwms.left.tim.init_output_compare(.{
+        .mode = .{ .OC2M = .pwm1 },
+        .pulse = .{ .CCR2 = 0 },
+        .output_state = .{ .CC2E = 1 },
+        .output_polarity = .{ .CC2P = .active_high },
+    });
+    switch (pwms.left.tim.handle) {
+        inline .general_advanced => |handle| {
+            handle.CCMR1_Output.modify(.{ .OC2PE = 1 });
+            handle.CR1.modify(.{ .CEN = 1 });
         },
+        inline else => {},
     }
 
     RCC.APB2ENR.modify(.{ .IOPBEN = 1, .AFIOEN = 1 });
     RCC.APB1ENR.modify(.{ .TIM4EN = 1 });
-    pwms.pwmb = .{
+
+    pwms.right = .{
         .gpio = Gpio.init(.{
             .pin = .{ .pin_06 = 1 },
-            .mode = .alter_push_pull,
+            .mode = .alt_push_pull,
             .speed = .@"50_mhz",
             .handle = .GPIOB,
         }),
@@ -112,46 +145,76 @@ fn init_pwm() void {
             .handle = .TIM4,
             .direction = .up,
             .clock_division = .clock_division1,
-            .reload_period = 7200,
-            .prescaler = 0,
+            .reload_period = options.right.reload_period,
+            .prescaler = options.right.prescaler,
         }),
     };
-    pwms.pwmb.tim.init_output_compare(.{ .mode = .{ .OC1M = .pwm1 } });
-    switch (pwms.pwmb.tim.handle) {
-        inline else => |handle| {
-            if (@hasDecl(@TypeOf(handle.*), "CCMR1_Output")) {
-                handle.CCMR1_Output.modify(.{ .OC1PE = 1 });
-            }
-            if (@hasDecl(@TypeOf(handle.*), "CR1")) {
-                handle.CR1.modify(.{ .CEN = 1 });
-            }
+    pwms.right.tim.init_output_compare(.{
+        .mode = .{ .OC1M = .pwm1 },
+        .pulse = .{ .CCR1 = 0 },
+        .output_state = .{ .CC1E = 1 },
+        .output_polarity = .{ .CC1P = .active_high },
+    });
+    switch (pwms.right.tim.handle) {
+        inline .general_advanced => |handle| {
+            handle.CCMR1_Output.modify(.{ .OC1PE = 1 });
+            handle.CR1.modify(.{ .CEN = 1 });
         },
+        inline else => {},
     }
 }
 
-pub fn forward() void {
-    control_left(.{ .front = .high, .rear = .low });
-    control_right(.{ .front = .high, .rear = .low });
+pub fn pwm_control_left(speed: u16) void {
+    switch (pwms.left.tim.handle) {
+        inline .general_advanced => |handle| {
+            handle.CCR2.modify(.{ .CCR2 = speed });
+        },
+        inline else => {},
+    }
 }
 
-pub fn backward() void {
+pub fn pwm_control_right(speed: u16) void {
+    switch (pwms.right.tim.handle) {
+        inline .general_advanced => |handle| {
+            handle.CCR1.modify(.{ .CCR1 = speed });
+        },
+        inline else => {},
+    }
+}
+
+pub fn forward(speed: u16) void {
+    control_left(.{ .front = .high, .rear = .low });
+    control_right(.{ .front = .high, .rear = .low });
+    pwm_control_left(speed);
+    pwm_control_right(speed);
+}
+
+pub fn backward(speed: u16) void {
     control_left(.{ .front = .low, .rear = .high });
     control_right(.{ .front = .low, .rear = .high });
+    pwm_control_left(speed);
+    pwm_control_right(speed);
 }
 
 pub fn stop() void {
     control_left(.{ .front = .low, .rear = .low });
     control_right(.{ .front = .low, .rear = .low });
+    pwm_control_left(0);
+    pwm_control_right(0);
 }
 
-pub fn turn_left() void {
-    control_left(.{ .front = .low, .rear = .high });
+pub fn turn_left(speed: u16) void {
+    control_left(.{ .front = .low, .rear = .low });
     control_right(.{ .front = .high, .rear = .low });
+    pwm_control_left(0);
+    pwm_control_right(speed);
 }
 
-pub fn turn_right() void {
+pub fn turn_right(speed: u16) void {
     control_left(.{ .front = .high, .rear = .low });
-    control_right(.{ .front = .low, .rear = .high });
+    control_right(.{ .front = .low, .rear = .low });
+    pwm_control_left(speed);
+    pwm_control_right(0);
 }
 
 pub fn control_left(fields: anytype) void {

@@ -60,4 +60,15 @@ pub fn build(b: *std.build.Builder) !void {
     });
     blinky.installArtifact(b);
     installBinHex(b, blinky.inner, "blinky");
+
+    const forward = microzig.addEmbeddedExecutable(b, .{
+        .name = "forward.elf",
+        .source_file = .{
+            .path = "examples/forward.zig",
+        },
+        .backing = .{ .chip = stm32f103x8 },
+        .optimize = optimize,
+    });
+    forward.installArtifact(b);
+    installBinHex(b, forward.inner, "forward");
 }

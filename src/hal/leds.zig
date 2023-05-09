@@ -16,22 +16,20 @@ var leds: Leds = .{
 
 pub fn init() void {
     RCC.APB2ENR.modify(.{ .IOPBEN = 1 });
+    RCC.APB2ENR.modify(.{ .IOPAEN = 1 });
+
     leds.red = Gpio.init(.{
         .pin = .{ .pin_01 = 1 },
         .mode = .out_push_pull,
         .speed = .@"50_mhz",
         .handle = .GPIOB,
     });
-
-    RCC.APB2ENR.modify(.{ .IOPBEN = 1 });
     leds.green = Gpio.init(.{
         .pin = .{ .pin_00 = 1 },
         .mode = .out_push_pull,
         .speed = .@"50_mhz",
         .handle = .GPIOB,
     });
-
-    RCC.APB2ENR.modify(.{ .IOPAEN = 1 });
     leds.blue = Gpio.init(.{
         .pin = .{ .pin_07 = 1 },
         .mode = .out_push_pull,

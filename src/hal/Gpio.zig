@@ -39,10 +39,11 @@ pub const Pin = union(enum) {
     pin_15: u1,
 };
 
-pub const Speed = enum {
-    @"10_mhz",
-    @"2_mhz",
-    @"50_mhz",
+pub const Speed = enum(u2) {
+    reset = 0x00,
+    @"10_mhz" = 0b01,
+    @"2_mhz" = 0b10,
+    @"50_mhz" = 0b11,
 };
 
 pub const Mode = enum {
@@ -53,8 +54,8 @@ pub const Mode = enum {
 
     out_push_pull,
     out_open_drain,
-    alter_push_pull,
-    alter_open_drain,
+    alt_push_pull,
+    alt_open_drain,
 };
 
 pub const State = enum(u1) {
@@ -96,7 +97,7 @@ pub const InitOptions = struct {
 };
 
 pins: Pins = .{},
-speed: Speed,
+speed: Speed = .reset,
 mode: Mode,
 inner: *volatile micro.chip.types.GPIOA = undefined,
 
@@ -136,15 +137,15 @@ pub fn init(options: InitOptions) Gpio {
         switch (gpio.mode) {
             .in_analog,
             .out_push_pull,
-            => break :blk 0x0,
+            => break :blk 0b00,
             .in_floating,
             .out_open_drain,
-            => break :blk 0x1,
+            => break :blk 0b01,
             .in_pull_down,
             .in_pull_up,
-            .alter_push_pull,
-            => break :blk 0x2,
-            .alter_open_drain => break :blk 0x3,
+            .alt_push_pull,
+            => break :blk 0b10,
+            .alt_open_drain => break :blk 0b11,
         }
     };
 
@@ -158,8 +159,10 @@ pub fn init(options: InitOptions) Gpio {
             .in_floating,
             .in_pull_down,
             .in_pull_up,
-            => break :blk 0x0,
-            else => break :blk @enumToInt(gpio.speed) + 1,
+            => break :blk @enumToInt(Speed.reset),
+            else => break :blk switch (gpio.speed) {
+                inline else => |tag| @enumToInt(tag),
+            },
         }
     };
 
@@ -177,26 +180,16 @@ pub fn init(options: InitOptions) Gpio {
 
     const fields = @typeInfo(PortConfigs).Struct.fields;
     switch (std.math.log2(@bitCast(u16, gpio.pins))) {
-        0...7 => |index| {
+        inline 0...7 => |i| {
             var tmp_reg = gpio.inner.CRL.raw;
             var configs = @bitCast(PortConfigs, tmp_reg);
-            inline for (fields, 0..8) |field, i| {
-                if (i == index) {
-                    @field(configs, field.name) = port_config;
-                    break;
-                }
-            }
+            @field(configs, fields[i].name) = port_config;
             gpio.inner.CRL.write_raw(@bitCast(u32, configs));
         },
-        8...15 => |index| {
+        inline 8...15 => |i| {
             var tmp_reg = gpio.inner.CRH.raw;
             var configs = @bitCast(PortConfigs, tmp_reg);
-            inline for (fields, 0..8) |field, i| {
-                if (i == (index - 8)) {
-                    @field(configs, field.name) = port_config;
-                    break;
-                }
-            }
+            @field(configs, fields[i - 8].name) = port_config;
             gpio.inner.CRH.write_raw(@bitCast(u32, configs));
         },
         else => unreachable,
