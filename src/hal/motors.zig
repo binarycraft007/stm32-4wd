@@ -32,11 +32,11 @@ const Pwms = struct {
 
 const PwmInitOptions = struct {
     left: struct {
-        reload_period: u16,
+        period: u16,
         prescaler: u16,
     },
     right: struct {
-        reload_period: u16,
+        period: u16,
         prescaler: u16,
     },
 };
@@ -49,14 +49,8 @@ var pwms: Pwms = .{
 pub fn init() void {
     init_gpios();
     init_pwms(.{
-        .left = .{
-            .reload_period = 7200,
-            .prescaler = 0,
-        },
-        .right = .{
-            .reload_period = 7200,
-            .prescaler = 0,
-        },
+        .left = .{ .period = 7200, .prescaler = 0 },
+        .right = .{ .period = 7200, .prescaler = 0 },
     });
 }
 
@@ -113,7 +107,7 @@ inline fn init_pwms(options: PwmInitOptions) void {
             .handle = .TIM4,
             .direction = .up,
             .clock_division = .clock_division1,
-            .reload_period = options.left.reload_period,
+            .period = options.left.period,
             .prescaler = options.left.prescaler,
         }),
     };
@@ -123,16 +117,6 @@ inline fn init_pwms(options: PwmInitOptions) void {
         .output_state = .{ .CC2E = 1 },
         .output_polarity = .{ .CC2P = .active_high },
     });
-    switch (pwms.left.tim.handle) {
-        inline .general_advanced => |handle| {
-            handle.CCMR1_Output.modify(.{ .OC2PE = 1 });
-            handle.CR1.modify(.{ .CEN = 1 });
-        },
-        inline else => {},
-    }
-
-    RCC.APB2ENR.modify(.{ .IOPBEN = 1, .AFIOEN = 1 });
-    RCC.APB1ENR.modify(.{ .TIM4EN = 1 });
 
     pwms.right = .{
         .gpio = Gpio.init(.{
@@ -145,7 +129,7 @@ inline fn init_pwms(options: PwmInitOptions) void {
             .handle = .TIM4,
             .direction = .up,
             .clock_division = .clock_division1,
-            .reload_period = options.right.reload_period,
+            .period = options.right.period,
             .prescaler = options.right.prescaler,
         }),
     };
@@ -155,30 +139,28 @@ inline fn init_pwms(options: PwmInitOptions) void {
         .output_state = .{ .CC1E = 1 },
         .output_polarity = .{ .CC1P = .active_high },
     });
-    switch (pwms.right.tim.handle) {
-        inline .general_advanced => |handle| {
-            handle.CCMR1_Output.modify(.{ .OC1PE = 1 });
-            handle.CR1.modify(.{ .CEN = 1 });
-        },
-        inline else => {},
-    }
+
+    pwms.left.tim.modify("CCMR1_Output", .{ .OC2PE = 1 });
+    pwms.left.tim.modify("CR1", .{ .CEN = 1 });
+    pwms.right.tim.modify("CCMR1_Output", .{ .OC1PE = 1 });
+    pwms.right.tim.modify("CR1", .{ .CEN = 1 });
 }
 
 pub fn pwm_control_left(speed: u16) void {
     switch (pwms.left.tim.handle) {
-        inline .general_advanced => |handle| {
-            handle.CCR2.modify(.{ .CCR2 = speed });
+        inline else => |handle| {
+            if (@hasField(@TypeOf(handle.*), "CCR2"))
+                handle.CCR2.modify(.{ .CCR2 = speed });
         },
-        inline else => {},
     }
 }
 
 pub fn pwm_control_right(speed: u16) void {
     switch (pwms.right.tim.handle) {
-        inline .general_advanced => |handle| {
-            handle.CCR1.modify(.{ .CCR1 = speed });
+        inline else => |handle| {
+            if (@hasField(@TypeOf(handle.*), "CCR1"))
+                handle.CCR1.modify(.{ .CCR1 = speed });
         },
-        inline else => {},
     }
 }
 
@@ -215,6 +197,20 @@ pub fn turn_right(speed: u16) void {
     control_right(.{ .front = .low, .rear = .low });
     pwm_control_left(speed);
     pwm_control_right(0);
+}
+
+pub fn spin_left(speed: u16) void {
+    control_left(.{ .front = .low, .rear = .high });
+    control_right(.{ .front = .high, .rear = .low });
+    pwm_control_left(speed);
+    pwm_control_right(speed);
+}
+
+pub fn spin_right(speed: u16) void {
+    control_left(.{ .front = .high, .rear = .low });
+    control_right(.{ .front = .low, .rear = .high });
+    pwm_control_left(speed);
+    pwm_control_right(speed);
 }
 
 pub fn control_left(fields: anytype) void {

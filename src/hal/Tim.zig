@@ -43,7 +43,7 @@ const InitOptions = struct {
         clock_division2,
         clock_division3,
     } = .clock_division1,
-    reload_period: u16,
+    period: u16,
     prescaler: u16,
     handle: TimHandles,
     repetition_counter: u8 = 0,
@@ -172,7 +172,7 @@ pub fn init(options: InitOptions) Tim {
                 }
             }
 
-            handle.ARR.modify(.{ .ARR = options.reload_period });
+            handle.ARR.modify(.{ .ARR = options.period });
             handle.PSC.modify(.{ .PSC = options.prescaler });
 
             if (@hasField(@TypeOf(handle.*), "RCR")) {
@@ -205,25 +205,23 @@ pub fn init_output_compare(tim: *Tim, options: OutputCompareOptions) void {
             if (@hasField(@TypeOf(handle.*), "CR2")) {
                 var tmp_cr2 = handle.CR2.read();
                 switch (options.idle_state) {
-                    inline else => |value, tag| {
+                    inline else => |v, tag| {
                         if (@hasField(@TypeOf(tmp_cr2), @tagName(tag))) {
-                            var field = @field(tmp_cr2, @tagName(tag));
-                            field = value;
+                            @field(tmp_cr2, @tagName(tag)) = v;
                         }
                     },
                 }
                 switch (options.idle_state_n) {
-                    inline else => |value, tag| {
+                    inline else => |v, tag| {
                         if (@hasField(@TypeOf(tmp_cr2), @tagName(tag))) {
-                            var field = @field(tmp_cr2, @tagName(tag));
-                            field = value;
+                            @field(tmp_cr2, @tagName(tag)) = v;
                         }
                     },
                 }
                 handle.CR2.write(tmp_cr2);
             }
             switch (options.mode) {
-                inline .OC1M, .OC2M => |value, tag| {
+                inline .OC1M, .OC2M => |v, tag| {
                     if (@hasField(@TypeOf(handle.*), "CCMR1_Output")) {
                         var tmp_ccmr1 = handle.CCMR1_Output.read();
                         if (@hasField(@TypeOf(tmp_ccmr1), @tagName(tag))) {
@@ -232,13 +230,12 @@ pub fn init_output_compare(tim: *Tim, options: OutputCompareOptions) void {
                                 .{@intCast(u4, @enumToInt(tag)) + 1},
                             );
                             @field(tmp_ccmr1, field_name) = 0;
-                            var field = @field(tmp_ccmr1, @tagName(tag));
-                            field = @enumToInt(value);
+                            @field(tmp_ccmr1, @tagName(tag)) = @enumToInt(v);
                             handle.CCMR1_Output.write(tmp_ccmr1);
                         }
                     }
                 },
-                inline .OC3M, .OC4M => |value, tag| {
+                inline .OC3M, .OC4M => |v, tag| {
                     if (@hasField(@TypeOf(handle.*), "CCMR2_Output")) {
                         var tmp_ccmr2 = handle.CCMR2_Output.read();
                         if (@hasField(@TypeOf(tmp_ccmr2), @tagName(tag))) {
@@ -247,20 +244,18 @@ pub fn init_output_compare(tim: *Tim, options: OutputCompareOptions) void {
                                 .{@intCast(u4, @enumToInt(tag)) + 1},
                             );
                             @field(tmp_ccmr2, field_name) = 0;
-                            var field = @field(tmp_ccmr2, @tagName(tag));
-                            field = @enumToInt(value);
+                            @field(tmp_ccmr2, @tagName(tag)) = @enumToInt(v);
                             handle.CCMR2_Output.write(tmp_ccmr2);
                         }
                     }
                 },
             }
             switch (options.pulse) {
-                inline else => |value, tag| {
+                inline else => |v, tag| {
                     if (@hasField(@TypeOf(handle.*), @tagName(tag))) {
                         var tmp_ccrx = @field(handle, @tagName(tag));
                         if (@hasField(@TypeOf(tmp_ccrx), @tagName(tag))) {
-                            var field = @field(tmp_ccrx, @tagName(tag));
-                            field = value;
+                            @field(tmp_ccrx, @tagName(tag)) = v;
                             @field(handle, @tagName(tag)).write(tmp_ccrx);
                         }
                     }
@@ -269,38 +264,49 @@ pub fn init_output_compare(tim: *Tim, options: OutputCompareOptions) void {
             if (@hasField(@TypeOf(handle.*), "CCER")) {
                 var tmp_ccer = handle.CCER.read();
                 switch (options.output_state) {
-                    inline else => |value, tag| {
+                    inline else => |v, tag| {
                         if (@hasField(@TypeOf(tmp_ccer), @tagName(tag))) {
-                            var field = @field(tmp_ccer, @tagName(tag));
-                            field = value;
+                            @field(tmp_ccer, @tagName(tag)) = v;
                         }
                     },
                 }
                 switch (options.output_polarity) {
-                    inline else => |value, tag| {
+                    inline else => |v, tag| {
                         if (@hasField(@TypeOf(tmp_ccer), @tagName(tag))) {
-                            var field = @field(tmp_ccer, @tagName(tag));
-                            field = @enumToInt(value);
+                            @field(tmp_ccer, @tagName(tag)) = @enumToInt(v);
                         }
                     },
                 }
                 switch (options.output_n_state) {
-                    inline else => |value, tag| {
+                    inline else => |v, tag| {
                         if (@hasField(@TypeOf(tmp_ccer), @tagName(tag))) {
-                            var field = @field(tmp_ccer, @tagName(tag));
-                            field = value;
+                            @field(tmp_ccer, @tagName(tag)) = v;
                         }
                     },
                 }
                 switch (options.output_n_polarity) {
-                    inline else => |value, tag| {
+                    inline else => |v, tag| {
                         if (@hasField(@TypeOf(tmp_ccer), @tagName(tag))) {
-                            var field = @field(tmp_ccer, @tagName(tag));
-                            field = @enumToInt(value);
+                            @field(tmp_ccer, @tagName(tag)) = @enumToInt(v);
                         }
                     },
                 }
                 handle.CCER.write(tmp_ccer);
+            }
+        },
+    }
+}
+
+pub fn modify(tim: *Tim, comptime name: []const u8, fields: anytype) void {
+    switch (tim.handle) {
+        inline else => |handle| {
+            if (@hasField(@TypeOf(handle.*), name)) {
+                var val = @field(handle, name).read();
+                inline for (@typeInfo(@TypeOf(fields)).Struct.fields) |field| {
+                    if (@hasField(@TypeOf(val), field.name))
+                        @field(val, field.name) = @field(fields, field.name);
+                }
+                @field(handle, name).write(val);
             }
         },
     }

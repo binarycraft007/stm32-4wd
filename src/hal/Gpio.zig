@@ -110,10 +110,9 @@ pub fn init(options: InitOptions) Gpio {
     };
 
     switch (options.pin) {
-        inline else => |_, tag| @field(
-            gpio.pins,
-            @tagName(tag),
-        ) = 1,
+        inline else => |_, tag| {
+            @field(gpio.pins, @tagName(tag)) = 1;
+        },
     }
 
     switch (options.handle) {
@@ -128,6 +127,7 @@ pub fn init(options: InitOptions) Gpio {
     // 01: Floating input (reset state)
     // 10: Input with pull-up / pull-down
     // 11: Reserved
+    //
     // In output mode (MODE[1:0] > 00):
     // 00: General purpose output push-pull
     // 01: General purpose output Open-drain

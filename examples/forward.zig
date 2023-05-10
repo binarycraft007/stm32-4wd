@@ -6,7 +6,7 @@ pub fn main() void {
     while (true) {
         hal.motors.forward(3600);
         hal.time.sleep_ms(1000);
-        hal.motors.backward(3600);
+        hal.motors.stop();
         hal.time.sleep_ms(1000);
     }
 }
