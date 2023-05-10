@@ -3,17 +3,6 @@ const RCC = micro.chip.peripherals.RCC;
 const Gpio = micro.hal.Gpio;
 const Tim = micro.hal.Tim;
 
-const Motors = struct {
-    left: struct {
-        front: Gpio,
-        rear: Gpio,
-    },
-    right: struct {
-        front: Gpio,
-        rear: Gpio,
-    },
-};
-
 var motors: Motors = .{
     .left = undefined,
     .right = undefined,
@@ -60,36 +49,30 @@ inline fn init_gpios() void {
     micro.chip.peripherals.AFIO.MAPR.modify(.{
         .SWJ_CFG = 0b010, // JTAG Disabled, SW Enabled
     });
-
-    motors.left.front = Gpio.init(.{
-        .pin = .{ .pin_09 = 1 },
-        .mode = .out_push_pull,
-        .speed = .@"50_mhz",
-        .handle = .GPIOB,
+    motors.init(.{
+        .ports = .{
+            .left = .{
+                .front = .GPIOB,
+                .rear = .GPIOB,
+            },
+            .right = .{
+                .front = .GPIOB,
+                .rear = .GPIOB,
+            },
+        },
+        .pins = .{
+            .left = .{
+                .front = .{ .pin_09 = 1 },
+                .rear = .{ .pin_08 = 1 },
+            },
+            .right = .{
+                .front = .{ .pin_04 = 1 },
+                .rear = .{ .pin_05 = 1 },
+            },
+        },
     });
-
-    motors.left.rear = Gpio.init(.{
-        .pin = .{ .pin_08 = 1 },
-        .mode = .out_push_pull,
-        .speed = .@"50_mhz",
-        .handle = .GPIOB,
-    });
-
-    motors.right.front = Gpio.init(.{
-        .pin = .{ .pin_04 = 1 },
-        .mode = .out_push_pull,
-        .speed = .@"50_mhz",
-        .handle = .GPIOB,
-    });
-
-    motors.right.rear = Gpio.init(.{
-        .pin = .{ .pin_05 = 1 },
-        .mode = .out_push_pull,
-        .speed = .@"50_mhz",
-        .handle = .GPIOB,
-    });
-    control_left(.{ .front = .low, .rear = .low });
-    control_right(.{ .front = .low, .rear = .low });
+    control(.left, .{ .front = .low, .rear = .low });
+    control(.right, .{ .front = .low, .rear = .low });
 }
 
 inline fn init_pwms(options: PwmInitOptions) void {
@@ -146,81 +129,127 @@ inline fn init_pwms(options: PwmInitOptions) void {
     pwms.right.tim.modify("CR1", .{ .CEN = 1 });
 }
 
-pub fn pwm_control_left(speed: u16) void {
-    switch (pwms.left.tim.handle) {
-        inline else => |handle| {
-            if (@hasField(@TypeOf(handle.*), "CCR2"))
-                handle.CCR2.modify(.{ .CCR2 = speed });
-        },
-    }
-}
-
-pub fn pwm_control_right(speed: u16) void {
-    switch (pwms.right.tim.handle) {
-        inline else => |handle| {
-            if (@hasField(@TypeOf(handle.*), "CCR1"))
-                handle.CCR1.modify(.{ .CCR1 = speed });
-        },
-    }
-}
-
 pub fn forward(speed: u16) void {
-    control_left(.{ .front = .high, .rear = .low });
-    control_right(.{ .front = .high, .rear = .low });
-    pwm_control_left(speed);
-    pwm_control_right(speed);
+    control(.left, .{ .front = .high, .rear = .low });
+    control(.right, .{ .front = .high, .rear = .low });
+    pwm_control(.left, speed);
+    pwm_control(.right, speed);
 }
 
 pub fn backward(speed: u16) void {
-    control_left(.{ .front = .low, .rear = .high });
-    control_right(.{ .front = .low, .rear = .high });
-    pwm_control_left(speed);
-    pwm_control_right(speed);
+    control(.left, .{ .front = .low, .rear = .high });
+    control(.right, .{ .front = .low, .rear = .high });
+    pwm_control(.left, speed);
+    pwm_control(.right, speed);
 }
 
 pub fn stop() void {
-    control_left(.{ .front = .low, .rear = .low });
-    control_right(.{ .front = .low, .rear = .low });
-    pwm_control_left(0);
-    pwm_control_right(0);
+    control(.left, .{ .front = .low, .rear = .low });
+    control(.right, .{ .front = .low, .rear = .low });
+    pwm_control(.left, 0);
+    pwm_control(.right, 0);
 }
 
 pub fn turn_left(speed: u16) void {
-    control_left(.{ .front = .low, .rear = .low });
-    control_right(.{ .front = .high, .rear = .low });
-    pwm_control_left(0);
-    pwm_control_right(speed);
+    control(.left, .{ .front = .low, .rear = .low });
+    control(.right, .{ .front = .high, .rear = .low });
+    pwm_control(.left, 0);
+    pwm_control(.right, speed);
 }
 
 pub fn turn_right(speed: u16) void {
-    control_left(.{ .front = .high, .rear = .low });
-    control_right(.{ .front = .low, .rear = .low });
-    pwm_control_left(speed);
-    pwm_control_right(0);
+    control(.left, .{ .front = .high, .rear = .low });
+    control(.right, .{ .front = .low, .rear = .low });
+    pwm_control(.left, speed);
+    pwm_control(.right, 0);
 }
 
 pub fn spin_left(speed: u16) void {
-    control_left(.{ .front = .low, .rear = .high });
-    control_right(.{ .front = .high, .rear = .low });
-    pwm_control_left(speed);
-    pwm_control_right(speed);
+    control(.left, .{ .front = .low, .rear = .high });
+    control(.right, .{ .front = .high, .rear = .low });
+    pwm_control(.left, speed);
+    pwm_control(.right, speed);
 }
 
 pub fn spin_right(speed: u16) void {
-    control_left(.{ .front = .high, .rear = .low });
-    control_right(.{ .front = .low, .rear = .high });
-    pwm_control_left(speed);
-    pwm_control_right(speed);
+    control(.left, .{ .front = .high, .rear = .low });
+    control(.right, .{ .front = .low, .rear = .high });
+    pwm_control(.left, speed);
+    pwm_control(.right, speed);
 }
 
-pub fn control_left(fields: anytype) void {
+const ControlType = enum {
+    left,
+    right,
+};
+
+pub fn control(comptime side: ControlType, fields: anytype) void {
     inline for (@typeInfo(@TypeOf(fields)).Struct.fields) |field| {
-        @field(motors.left, field.name).put(@field(fields, field.name));
+        @field(@field(motors, @tagName(side)), field.name).put(
+            @field(fields, field.name),
+        );
     }
 }
 
-pub fn control_right(fields: anytype) void {
-    inline for (@typeInfo(@TypeOf(fields)).Struct.fields) |field| {
-        @field(motors.right, field.name).put(@field(fields, field.name));
+pub fn pwm_control(comptime side: ControlType, speed: u16) void {
+    switch (side) {
+        inline .left => {
+            pwms.left.tim.modify("CCR2", .{ .CCR2 = speed });
+        },
+        inline .right => {
+            pwms.right.tim.modify("CCR1", .{ .CCR1 = speed });
+        },
     }
 }
+
+const Motors = struct {
+    left: struct {
+        front: Gpio,
+        rear: Gpio,
+    },
+    right: struct {
+        front: Gpio,
+        rear: Gpio,
+    },
+
+    const InitOptions = struct {
+        ports: struct {
+            right: struct {
+                front: Gpio.Handles,
+                rear: Gpio.Handles,
+            },
+            left: struct {
+                front: Gpio.Handles,
+                rear: Gpio.Handles,
+            },
+        },
+        pins: struct {
+            right: struct {
+                front: Gpio.Pin,
+                rear: Gpio.Pin,
+            },
+            left: struct {
+                front: Gpio.Pin,
+                rear: Gpio.Pin,
+            },
+        },
+    };
+
+    fn init(self: *Motors, options: InitOptions) void {
+        inline for (@typeInfo(Motors).Struct.fields) |side| {
+            const T = @TypeOf(@field(self, side.name));
+            inline for (@typeInfo(T).Struct.fields) |gpio| {
+                const pins = options.pins;
+                const ports = options.ports;
+                @field(@field(self, side.name), gpio.name) = Gpio.init(
+                    .{
+                        .pin = @field(@field(pins, side.name), gpio.name),
+                        .mode = .out_push_pull,
+                        .speed = .@"50_mhz",
+                        .handle = @field(@field(ports, side.name), gpio.name),
+                    },
+                );
+            }
+        }
+    }
+};

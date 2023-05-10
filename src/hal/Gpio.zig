@@ -79,7 +79,7 @@ pub const PortConfig = packed struct(u4) {
     config: u2,
 };
 
-pub const GpioHandles = enum {
+pub const Handles = enum {
     GPIOA,
     GPIOB,
     GPIOC,
@@ -93,7 +93,7 @@ pub const InitOptions = struct {
     pin: Pin,
     speed: Speed,
     mode: Mode,
-    handle: GpioHandles,
+    handle: Handles,
 };
 
 pins: Pins = .{},
