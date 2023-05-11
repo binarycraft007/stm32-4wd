@@ -1,6 +1,6 @@
 pub const micro = @import("microzig");
 pub const Gpio = @import("hal/Gpio.zig");
-pub const Tim = @import("hal/Tim.zig");
+pub const Timer = @import("hal/Timer.zig");
 pub const time = @import("hal/time.zig");
 pub const leds = @import("hal/leds.zig");
 pub const motors = @import("hal/motors.zig");

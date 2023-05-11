@@ -1,7 +1,7 @@
 const micro = @import("microzig");
 const RCC = micro.chip.peripherals.RCC;
 const Gpio = micro.hal.Gpio;
-const Tim = micro.hal.Tim;
+const Timer = micro.hal.Timer;
 
 var motors: Motors = .{
     .left = undefined,
@@ -11,11 +11,11 @@ var motors: Motors = .{
 const Pwms = struct {
     left: struct {
         gpio: Gpio,
-        tim: Tim,
+        timer: Timer,
     },
     right: struct {
         gpio: Gpio,
-        tim: Tim,
+        timer: Timer,
     },
 };
 
@@ -86,7 +86,7 @@ inline fn init_pwms(options: PwmInitOptions) void {
             .speed = .@"50_mhz",
             .handle = .GPIOB,
         }),
-        .tim = Tim.init(.{
+        .timer = Timer.init(.{
             .handle = .TIM4,
             .direction = .up,
             .clock_division = .clock_division1,
@@ -94,7 +94,7 @@ inline fn init_pwms(options: PwmInitOptions) void {
             .prescaler = options.left.prescaler,
         }),
     };
-    pwms.left.tim.init_output_compare(.{
+    pwms.left.timer.init_output_compare(.{
         .mode = .{ .OC2M = .pwm1 },
         .pulse = .{ .CCR2 = 0 },
         .output_state = .{ .CC2E = 1 },
@@ -108,7 +108,7 @@ inline fn init_pwms(options: PwmInitOptions) void {
             .speed = .@"50_mhz",
             .handle = .GPIOB,
         }),
-        .tim = Tim.init(.{
+        .timer = Timer.init(.{
             .handle = .TIM4,
             .direction = .up,
             .clock_division = .clock_division1,
@@ -116,17 +116,17 @@ inline fn init_pwms(options: PwmInitOptions) void {
             .prescaler = options.right.prescaler,
         }),
     };
-    pwms.right.tim.init_output_compare(.{
+    pwms.right.timer.init_output_compare(.{
         .mode = .{ .OC1M = .pwm1 },
         .pulse = .{ .CCR1 = 0 },
         .output_state = .{ .CC1E = 1 },
         .output_polarity = .{ .CC1P = .active_high },
     });
 
-    pwms.left.tim.modify("CCMR1_Output", .{ .OC2PE = 1 });
-    pwms.left.tim.modify("CR1", .{ .CEN = 1 });
-    pwms.right.tim.modify("CCMR1_Output", .{ .OC1PE = 1 });
-    pwms.right.tim.modify("CR1", .{ .CEN = 1 });
+    pwms.left.timer.modify("CCMR1_Output", .{ .OC2PE = 1 });
+    pwms.left.timer.modify("CR1", .{ .CEN = 1 });
+    pwms.right.timer.modify("CCMR1_Output", .{ .OC1PE = 1 });
+    pwms.right.timer.modify("CR1", .{ .CEN = 1 });
 }
 
 pub fn forward(speed: u16) void {
@@ -194,10 +194,10 @@ pub fn control(comptime side: ControlType, fields: anytype) void {
 pub fn pwm_control(comptime side: ControlType, speed: u16) void {
     switch (side) {
         inline .left => {
-            pwms.left.tim.modify("CCR2", .{ .CCR2 = speed });
+            pwms.left.timer.modify("CCR2", .{ .CCR2 = speed });
         },
         inline .right => {
-            pwms.right.tim.modify("CCR1", .{ .CCR1 = speed });
+            pwms.right.timer.modify("CCR1", .{ .CCR1 = speed });
         },
     }
 }
