@@ -3,6 +3,17 @@ const RCC = micro.chip.peripherals.RCC;
 const Gpio = micro.hal.Gpio;
 const Timer = micro.hal.Timer;
 
+const Motors = struct {
+    left: struct {
+        front: Gpio,
+        rear: Gpio,
+    },
+    right: struct {
+        front: Gpio,
+        rear: Gpio,
+    },
+};
+
 var motors: Motors = .{
     .left = undefined,
     .right = undefined,
@@ -49,28 +60,40 @@ inline fn init_gpios() void {
     micro.chip.peripherals.AFIO.MAPR.modify(.{
         .SWJ_CFG = 0b010, // JTAG Disabled, SW Enabled
     });
-    motors.init(.{
-        .ports = .{
-            .left = .{
-                .front = .GPIOB,
-                .rear = .GPIOB,
+    Gpio.initAll(
+        &[_]*Gpio{
+            &motors.left.front,
+            &motors.left.rear,
+            &motors.right.front,
+            &motors.right.rear,
+        },
+        &.{
+            .{
+                .handle = .GPIOB,
+                .pin = .{ .pin_09 = 1 },
+                .mode = .out_push_pull,
+                .speed = .@"50_mhz",
             },
-            .right = .{
-                .front = .GPIOB,
-                .rear = .GPIOB,
+            .{
+                .handle = .GPIOB,
+                .pin = .{ .pin_08 = 1 },
+                .mode = .out_push_pull,
+                .speed = .@"50_mhz",
+            },
+            .{
+                .handle = .GPIOB,
+                .pin = .{ .pin_04 = 1 },
+                .mode = .out_push_pull,
+                .speed = .@"50_mhz",
+            },
+            .{
+                .handle = .GPIOB,
+                .pin = .{ .pin_05 = 1 },
+                .mode = .out_push_pull,
+                .speed = .@"50_mhz",
             },
         },
-        .pins = .{
-            .left = .{
-                .front = .{ .pin_09 = 1 },
-                .rear = .{ .pin_08 = 1 },
-            },
-            .right = .{
-                .front = .{ .pin_04 = 1 },
-                .rear = .{ .pin_05 = 1 },
-            },
-        },
-    });
+    );
     control(.left, .{ .front = .low, .rear = .low });
     control(.right, .{ .front = .low, .rear = .low });
 }
@@ -201,55 +224,3 @@ pub fn pwm_control(comptime side: ControlType, speed: u16) void {
         },
     }
 }
-
-const Motors = struct {
-    left: struct {
-        front: Gpio,
-        rear: Gpio,
-    },
-    right: struct {
-        front: Gpio,
-        rear: Gpio,
-    },
-
-    const InitOptions = struct {
-        ports: struct {
-            right: struct {
-                front: Gpio.Handles,
-                rear: Gpio.Handles,
-            },
-            left: struct {
-                front: Gpio.Handles,
-                rear: Gpio.Handles,
-            },
-        },
-        pins: struct {
-            right: struct {
-                front: Gpio.Pin,
-                rear: Gpio.Pin,
-            },
-            left: struct {
-                front: Gpio.Pin,
-                rear: Gpio.Pin,
-            },
-        },
-    };
-
-    fn init(self: *Motors, options: InitOptions) void {
-        inline for (@typeInfo(Motors).Struct.fields) |side| {
-            const T = @TypeOf(@field(self, side.name));
-            inline for (@typeInfo(T).Struct.fields) |gpio| {
-                const pins = options.pins;
-                const ports = options.ports;
-                @field(@field(self, side.name), gpio.name) = Gpio.init(
-                    .{
-                        .pin = @field(@field(pins, side.name), gpio.name),
-                        .mode = .out_push_pull,
-                        .speed = .@"50_mhz",
-                        .handle = @field(@field(ports, side.name), gpio.name),
-                    },
-                );
-            }
-        }
-    }
-};

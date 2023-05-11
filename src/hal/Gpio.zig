@@ -203,3 +203,9 @@ pub fn put(gpio: *Gpio, state: State) void {
         .low => gpio.inner.BRR.write_raw(@bitCast(u16, gpio.pins)),
     }
 }
+
+pub fn initAll(gpios: []const *Gpio, comptime options: []const InitOptions) void {
+    inline for (options, 0..options.len) |option, i| {
+        gpios[i].* = Gpio.init(option);
+    }
+}
